@@ -19,36 +19,35 @@ from pyrogram.errors import UserNotParticipant
 from config import Rkn_Botz
 from .database import rkn_botz
 
-# 🧠 Custom async filter factory (compatible with pyrogram.filters.create)
-def build_force_sub_filter(channel: str):
-    channel = (channel or "").lstrip("@")
+# 🧠 Membership checker used by force-sub handler
+async def needs_force_sub(client: Client, message: Message) -> bool:
+    if not message.from_user:
+        return False
 
-    async def force_sub_check(_, client: Client, message: Message) -> bool:
-        if not message.from_user:
-            return False
+    user_id = message.from_user.id
 
-        user_id = message.from_user.id
+    # Register user in DB if not already
+    await rkn_botz.register_user(user_id)
 
-        # Register user in DB if not already
-        await rkn_botz.register_user(user_id)
+    channel = (Rkn_Botz.FORCE_SUB or "").lstrip("@")
+    if not channel:
+        return False
 
-        if not channel:
-            return False  # No force sub set
-
-        try:
-            member = await client.get_chat_member(channel, user_id)
-            return member.status in [enums.ChatMemberStatus.LEFT, enums.ChatMemberStatus.BANNED]
-        except UserNotParticipant:
-            return True
-        except Exception:
-            return False
-
-    return filters.create(force_sub_check)
+    try:
+        member = await client.get_chat_member(channel, user_id)
+        return member.status in [enums.ChatMemberStatus.LEFT, enums.ChatMemberStatus.BANNED]
+    except UserNotParticipant:
+        return True
+    except Exception:
+        return False
 
 
 # 📩 Handler for blocked users / unsubscribed
-@Client.on_message(filters.private & build_force_sub_filter(Rkn_Botz.FORCE_SUB))
+@Client.on_message(filters.private)
 async def handle_force_sub(client: Client, message: Message):
+    if not await needs_force_sub(client, message):
+        return
+
     user_id = message.from_user.id
     chat_link = f"https://t.me/{Rkn_Botz.FORCE_SUB.lstrip('@')}"
     
