@@ -19,31 +19,35 @@ from pyrogram.errors import UserNotParticipant
 from config import Rkn_Botz
 from .database import rkn_botz
 
-# 🧠 Async callable filter class
-class ForceSubCheck:
-    def __init__(self, channel: str):
-        self.channel = channel.lstrip("@")
+# 🧠 Custom async filter factory (compatible with pyrogram.filters.create)
+def build_force_sub_filter(channel: str):
+    channel = (channel or "").lstrip("@")
 
-    async def __call__(self, _, client: Client, message: Message) -> bool:
+    async def force_sub_check(_, client: Client, message: Message) -> bool:
+        if not message.from_user:
+            return False
+
         user_id = message.from_user.id
 
         # Register user in DB if not already
         await rkn_botz.register_user(user_id)
 
-        if not self.channel:
+        if not channel:
             return False  # No force sub set
 
         try:
-            member = await client.get_chat_member(self.channel, user_id)
+            member = await client.get_chat_member(channel, user_id)
             return member.status in [enums.ChatMemberStatus.LEFT, enums.ChatMemberStatus.BANNED]
         except UserNotParticipant:
             return True
         except Exception:
             return False
 
+    return filters.create(force_sub_check)
+
 
 # 📩 Handler for blocked users / unsubscribed
-@Client.on_message(filters.private & filters.create(ForceSubCheck(Rkn_Botz.FORCE_SUB), name="force_sub_check"))
+@Client.on_message(filters.private & build_force_sub_filter(Rkn_Botz.FORCE_SUB))
 async def handle_force_sub(client: Client, message: Message):
     user_id = message.from_user.id
     chat_link = f"https://t.me/{Rkn_Botz.FORCE_SUB.lstrip('@')}"
