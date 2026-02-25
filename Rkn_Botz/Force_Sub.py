@@ -43,10 +43,10 @@ class ForceSubCheck:
 
 
 # 📩 Handler for blocked users / unsubscribed
-@Client.on_message(filters.private & filters.create(ForceSubCheck(Config.FORCE_SUB)))
+@Client.on_message(filters.private & filters.create(ForceSubCheck(Rkn_Botz.FORCE_SUB), name="force_sub_check"))
 async def handle_force_sub(client: Client, message: Message):
     user_id = message.from_user.id
-    chat_link = f"https://t.me/{Config.FORCE_SUB.lstrip('@')}"
+    chat_link = f"https://t.me/{Rkn_Botz.FORCE_SUB.lstrip('@')}"
     
     # 📢 Button UI
     button = InlineKeyboardMarkup(
@@ -54,7 +54,7 @@ async def handle_force_sub(client: Client, message: Message):
     )
 
     try:
-        member = await client.get_chat_member(Config.FORCE_SUB, user_id)
+        member = await client.get_chat_member(Rkn_Botz.FORCE_SUB, user_id)
         if member.status == enums.ChatMemberStatus.BANNED:
             return await message.reply_text(
                 "**🚫 You are banned from using this bot.**\nContact admin if this is a mistake."
