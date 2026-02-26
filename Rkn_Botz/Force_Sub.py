@@ -29,12 +29,12 @@ async def needs_force_sub(client: Client, message: Message) -> bool:
     # Register user in DB if not already
     await rkn_botz.register_user(user_id)
 
-    channel = (Rkn_Botz.FORCE_SUB or "").lstrip("@")
-    if not channel:
+    force_sub_channel = (Rkn_Botz.FORCE_SUB or "").lstrip("@")
+    if not force_sub_channel:
         return False
 
     try:
-        member = await client.get_chat_member(channel, user_id)
+        member = await client.get_chat_member(force_sub_channel, user_id)
         return member.status in [enums.ChatMemberStatus.LEFT, enums.ChatMemberStatus.BANNED]
     except UserNotParticipant:
         return True
@@ -49,7 +49,8 @@ async def handle_force_sub(client: Client, message: Message):
         return
 
     user_id = message.from_user.id
-    chat_link = f"https://t.me/{Rkn_Botz.FORCE_SUB.lstrip('@')}"
+    force_sub_channel = (Rkn_Botz.FORCE_SUB or "").lstrip("@")
+    chat_link = f"https://t.me/{force_sub_channel}"
     
     # 📢 Button UI
     button = InlineKeyboardMarkup(
@@ -57,7 +58,7 @@ async def handle_force_sub(client: Client, message: Message):
     )
 
     try:
-        member = await client.get_chat_member(Rkn_Botz.FORCE_SUB, user_id)
+        member = await client.get_chat_member(force_sub_channel, user_id)
         if member.status == enums.ChatMemberStatus.BANNED:
             return await message.reply_text(
                 "**🚫 You are banned from using this bot.**\nContact admin if this is a mistake."
